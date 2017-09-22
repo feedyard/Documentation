@@ -8,7 +8,8 @@ in order to enable the continuous delivery of custom applications.
 
 #### Table of Contents
 
-The current reference implementation assumes the use of Amazon Web Services
+The current reference implementation assumes  
+the use of Amazon Web Services
 for public cloud IaaS.
  
 ###### Reference Architecture 
