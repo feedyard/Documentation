@@ -10,4 +10,4 @@ jobs:
       - setup_remote_docker
       - run:
           name: run tests
-          command: 'mdl -r ~MD009,~MD013,~MD036,~MD029,~MD001,~MD024,~MD026,~MD025,~MD033 .'
+          command: 'invoke lint'
