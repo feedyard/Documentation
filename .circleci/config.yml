@@ -1,0 +1,13 @@
+version: 2
+
+jobs:
+  build:
+    working_directory: ~/Documentation
+    docker:
+      - image: feedyard/circleci-markdown-agent
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: run tests
+          command: 'mdl -r ~MD009,~MD013,~MD036,~MD029,~MD001,~MD024,~MD026,~MD025,~MD033 .'
