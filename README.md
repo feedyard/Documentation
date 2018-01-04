@@ -1,23 +1,33 @@
 # Feedyard
 
-A set of example infrastructure-as-code patterns and reference architectures
-for deploying and operating a 'productized' integration of infrastructure and
-applications that is resilient, secure, and capable of rapid change at scale
-in order to enable the continuous delivery of custom applications.
+A set of evolving, example infrastructure-as-code patterns and reference architectures for developing and operating an
+infrastructure platform product designed to be resilient, secure, and capable of  change at scale in order to enable
+the continuous delivery of custom applications.
 
-
-#### Table of Contents
-
-The current reference implementation assumes  
-the use of Amazon Web Services
-for public cloud IaaS.
+## Table of Contents
  
-###### Reference Architecture 
+### IaaS:AWS  
 
-[Security Model](security.md)
+[Account Structure](account-structure.md)  
+  
+[bootstrap]  
+Starting with only a newly created AWS Account, a minimal bootstrap configuration must occur to support an IaC proocess
+for managing aws state.
 
+#### Identity:iam  
+  
+[baseline-aws-profile-acct]  
+[baseline-aws-resource-accts]  
 
-###### Artifacts
+[baseline-platform-networks]  
+[baseline-platform-clusters]  
+[baseline-platform-obs]  
 
-* virtual machine definitions
-* container images
+### Services
+
+#### pipeline-as-a-service
+
+##### container images
+
+[circleci-remote-docker](https://github.com/feedyard/circleci-remote-docker.git)  
+[circleci-infra-agent](https://github.com/feedyard/circleci-infra-agent.git)  
