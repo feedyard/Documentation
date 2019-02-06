@@ -199,3 +199,136 @@
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
+
+
+
+
+datadog-role
+
+# datadog user role
+resource "aws_iam_policy" "datadog_role_policy" {
+ provider = "aws.${var.aws_account}"
+ name = "DatadogAWSIntegrationRolePolicy"
+ path = "/"
+ policy = "${file("./policy-json/DatadogAWSIntegrationRolePolicy_1.0.json")}"
+}
+
+resource "aws_iam_role" "datadog_role" {
+ provider = "aws.${var.aws_account}"
+ name = "DatadogAWSIntegrationRole"
+ assume_role_policy = <<EOF
+{
+ "Version": "2012-10-17",
+ "Statement": {
+   "Effect": "Allow",
+   "Principal": { "AWS": "arn:aws:iam::464622532012:root" },
+   "Action": "sts:AssumeRole",
+   "Condition": {"StringEquals": {"sts:ExternalId": "${var.datadog_external_id[var.aws_account]}"}}
+ }
+}
+EOF
+}
+
+resource "aws_iam_policy_attachment" "datadog_role_attachment_to_datadog_role_policy" {
+ provider = "aws.${var.aws_account}"
+ name = "datadog_policy_attachment"
+ roles = ["${aws_iam_role.datadog_role.name}"]
+ policy_arn = "${aws_iam_policy.datadog_role_policy.arn}”
+}
+
+
+
+
+Policy.json
+
+{
+ "Version": "2012-10-17",
+ "Statement": [
+   {
+     "Action": [
+       "autoscaling:Describe*",
+       "cloudwatch:Describe*",
+       "cloudwatch:Get*",
+       "cloudwatch:List*",
+       "ec2:Describe*",
+       "ec2:Get*",
+       "elasticloadbalancing:Describe*",
+       "route53:List*",
+       "s3:GetBucketTagging",
+       "s3:ListAllMyBuckets",
+       "sqs:ListQueues",
+       "tag:getResources",
+       "tag:getTagKeys",
+       "tag:getTagValues"
+     ],
+     "Effect": "Allow",
+     "Resource": "*"
+   }
+ ]
+}
+
+
+
+
+test
+
+# frozen_string_literal: true
+
+require 'spec_helper'
+
+describe iam_role('DatadogAWSIntegrationRole') do
+ it { should exist }
+ it { should have_iam_policy('DatadogAWSIntegrationRolePolicy') }
+ it { should be_allowed_action('cloudwatch:List*') }
+end
+
+describe iam_policy('DatadogAWSIntegrationRolePolicy') do
+ it { should exist }
+ it { should be_attachable }
+ it { should be_attached_to_role('DatadogAWSIntegrationRole') }
+end
+
+
+inspec
+
+DATADOG_SIGNATURE = 'https://app.datadoghq.com/api'
+DATADOG_COLLECTION_INTERVAL_IN_SEC = 600
+DATADOG_AWS_STATUS_METRIC = 'aws.ec2.host_ok'
+API_KEY = ENV['API_KEY'] || raise('no API_KEY provided')
+APP_KEY = ENV['APP_KEY'] || raise('no APP_KEY provided')
+AWS_ACCOUNT = ENV['AWS_ACCOUNT_ALIAS'] || raise('no AWS_ACCOUNT_ALIAS provided')
+
+control 'datadog-connectivity' do
+ impact 1.0
+ title 'confirm connectivity to datadog'
+ desc 'confirm connectivity to datadog'
+ params = { api_key: API_KEY }
+ url = format('%s/v1/validate', DATADOG_SIGNATURE)
+ describe http(url, params: params, method: 'GET', open_timeout: 60, read_timeout: 60) do
+   its('status') { should eq 200 }
+   its('body') { should eq '{"valid":true}' }
+ end
+end
+
+control 'datadog-aws-integration' do
+ impact 1.0
+ title 'confirm integration configured for aws'
+ desc 'confirm integration configured for aws'
+ params = {
+   api_key: API_KEY,
+   application_key: APP_KEY
+ }
+ url = format('%s/v1/integration/aws', DATADOG_SIGNATURE)
+ describe http(url, params: params, method: 'GET', open_timeout: 60, read_timeout: 60) do
+   its('status') { should eq 200 }
+   its('body') { should include(format('acct:%s', AWS_ACCOUNT)) }
+ end
+end
+
+control 'datadog-aws-metrics' do
+ impact 1.0
+ title 'confirm aws metrics in datadog'
+ desc format('confirm last %s seconds of aws metrics are forwarded to datadog',
+             DATADOG_COLLECTION_INTERVAL_IN_SEC)
+ from_time = (Time.now - DATADOG_COLLECTION_INTERVAL_IN_SEC).to_i
+ to_time = Time.now.to_i
